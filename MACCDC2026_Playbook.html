@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MACCDC 2026 — Blue Team Playbook</title>
+<style>
+  :root {
+    --red: #b91c1c; --red-light: #fee2e2; --red-mid: #ef4444;
+    --amber: #92400e; --amber-light: #fef3c7; --amber-mid: #f59e0b;
+    --green: #166534; --green-light: #dcfce7; --green-mid: #22c55e;
+    --blue: #1e3a5f; --blue-light: #dbeafe; --blue-mid: #3b82f6;
+    --gray: #374151; --gray-light: #f3f4f6; --gray-mid: #9ca3af;
+    --bg: #ffffff; --surface: #f9fafb; --border: #e5e7eb;
+    --text: #111827; --text-muted: #6b7280;
+    --mono: 'Courier New', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: var(--text); background: var(--bg); font-size: 14px; line-height: 1.6; }
+
+  /* Print styles */
+  @media print {
+    .no-print { display: none !important; }
+    .page-break { page-break-before: always; }
+    body { font-size: 12px; }
+    .section { page-break-inside: avoid; }
+  }
+
+  .cover { background: #0f172a; color: white; padding: 48px 40px 36px; margin-bottom: 0; }
+  .cover h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 6px; }
+  .cover .sub { font-size: 15px; color: #94a3b8; margin-bottom: 20px; }
+  .cover .meta { display: flex; gap: 24px; flex-wrap: wrap; }
+  .cover .meta span { font-size: 13px; color: #64748b; }
+  .cover .meta strong { color: #e2e8f0; }
+
+  .toc { background: var(--surface); border-bottom: 1px solid var(--border); padding: 20px 40px; }
+  .toc h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--text-muted); margin-bottom: 10px; }
+  .toc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 6px; }
+  .toc-item { font-size: 13px; color: var(--blue-mid); text-decoration: none; padding: 4px 0; }
+  .toc-item:hover { text-decoration: underline; }
+  .toc-num { color: var(--text-muted); margin-right: 4px; }
+
+  .content { max-width: 960px; margin: 0 auto; padding: 32px 40px; }
+
+  .section { margin-bottom: 40px; }
+  .section-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid var(--text); }
+  .section-num { width: 28px; height: 28px; border-radius: 6px; background: var(--text); color: white; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+  .section-header h2 { font-size: 19px; font-weight: 700; }
+
+  .alert { padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; border-left: 4px solid; }
+  .alert-red { background: var(--red-light); border-color: var(--red-mid); color: var(--red); }
+  .alert-amber { background: var(--amber-light); border-color: var(--amber-mid); color: var(--amber); }
+  .alert-green { background: var(--green-light); border-color: var(--green-mid); color: var(--green); }
+  .alert-blue { background: var(--blue-light); border-color: var(--blue-mid); color: var(--blue); }
+  .alert strong { font-weight: 600; }
+
+  h3 { font-size: 14px; font-weight: 600; color: var(--text); margin: 20px 0 8px; }
+  h4 { font-size: 13px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; margin: 16px 0 6px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 8px 0 16px; }
+  th { background: var(--surface); font-weight: 600; text-align: left; padding: 8px 12px; border: 1px solid var(--border); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); }
+  td { padding: 8px 12px; border: 1px solid var(--border); vertical-align: top; }
+  tr:nth-child(even) td { background: var(--surface); }
+
+  .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px; }
+  .badge-red { background: var(--red-light); color: var(--red); }
+  .badge-green { background: var(--green-light); color: var(--green); }
+  .badge-amber { background: var(--amber-light); color: var(--amber); }
+  .badge-blue { background: var(--blue-light); color: var(--blue); }
+  .badge-gray { background: var(--gray-light); color: var(--gray); }
+
+  .cmd-block { background: #1e293b; color: #e2e8f0; border-radius: 8px; padding: 12px 16px; font-family: var(--mono); font-size: 12px; line-height: 1.7; margin: 6px 0 12px; overflow-x: auto; white-space: pre; }
+  .cmd-comment { color: #64748b; }
+  .cmd-key { color: #93c5fd; }
+
+  .checklist { list-style: none; }
+  .checklist li { display: flex; align-items: flex-start; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .checklist li:last-child { border-bottom: none; }
+  .check-box { width: 16px; height: 16px; border: 1.5px solid var(--gray-mid); border-radius: 3px; flex-shrink: 0; margin-top: 1px; }
+  .p-tag { font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 4px; flex-shrink: 0; margin-top: 1px; }
+  .p1 { background: var(--red-light); color: var(--red); }
+  .p2 { background: var(--amber-light); color: var(--amber); }
+  .p3 { background: var(--blue-light); color: var(--blue); }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  @media (max-width: 640px) { .grid2, .grid3 { grid-template-columns: 1fr; } }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; }
+  .card h3 { margin-top: 0; }
+  .card ul { list-style: none; font-size: 13px; color: var(--text-muted); }
+  .card ul li::before { content: "→ "; color: var(--blue-mid); }
+  .card ul li { padding: 2px 0; }
+
+  .score-bar { display: flex; border-radius: 6px; overflow: hidden; height: 28px; margin: 8px 0; }
+  .score-seg { display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; }
+
+  .vm-accent-red { border-left: 3px solid var(--red-mid); }
+  .vm-accent-amber { border-left: 3px solid var(--amber-mid); }
+  .vm-accent-blue { border-left: 3px solid var(--blue-mid); }
+  .vm-accent-gray { border-left: 3px solid var(--gray-mid); }
+
+  .footer { background: var(--surface); border-top: 1px solid var(--border); padding: 20px 40px; font-size: 12px; color: var(--text-muted); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+
+  .print-btn { position: fixed; bottom: 24px; right: 24px; background: #0f172a; color: white; border: none; padding: 10px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,.2); z-index: 100; }
+  .print-btn:hover { background: #1e293b; }
+</style>
+</head>
+<body>
+
+<button class="print-btn no-print" onclick="window.print()">🖨 Print / Save PDF</button>
+
+<!-- COVER -->
+<div class="cover">
+  <h1>MACCDC 2026 — Blue Team Playbook</h1>
+  <div class="sub">Mid-Atlantic Collegiate Cyber Defense Competition · Regional</div>
+  <div class="meta">
+    <span><strong>Date:</strong> March 27–28, 2026</span>
+    <span><strong>VMs:</strong> 11 (6 servers, 2 workstations, 2 Palo Alto FW, 1 VyOS)</span>
+    <span><strong>Host:</strong> Moraine Valley Community College (remote via NETLAB+)</span>
+    <span><strong>Access:</strong> ccdc.cit.morainevalley.edu</span>
+  </div>
+</div>
+
+<!-- TOC -->
+<div class="toc no-print">
+  <h2>Contents</h2>
+  <div class="toc-grid">
+    <a class="toc-item" href="#s1"><span class="toc-num">01</span> First 10 Minutes</a>
+    <a class="toc-item" href="#s2"><span class="toc-num">02</span> VM Inventory</a>
+    <a class="toc-item" href="#s3"><span class="toc-num">03</span> Scored Services</a>
+    <a class="toc-item" href="#s4"><span class="toc-num">04</span> Team Roles</a>
+    <a class="toc-item" href="#s5"><span class="toc-num">05</span> Linux Hardening</a>
+    <a class="toc-item" href="#s6"><span class="toc-num">06</span> Windows Hardening</a>
+    <a class="toc-item" href="#s7"><span class="toc-num">07</span> Firewall / Network</a>
+    <a class="toc-item" href="#s8"><span class="toc-num">08</span> Web / App</a>
+    <a class="toc-item" href="#s9"><span class="toc-num">09</span> Injects & Business Tasks</a>
+    <a class="toc-item" href="#s10"><span class="toc-num">10</span> Scoring Breakdown</a>
+    <a class="toc-item" href="#s11"><span class="toc-num">11</span> Competition Rules</a>
+    <a class="toc-item" href="#s12"><span class="toc-num">12</span> Red Team Intel</a>
+  </div>
+</div>
+
+<div class="content">
+
+<!-- SECTION 1: FIRST 10 MINUTES -->
+<div class="section" id="s1">
+  <div class="section-header">
+    <div class="section-num">01</div>
+    <h2>First 10 Minutes — Flag Drop Checklist</h2>
+  </div>
+
+  <div class="alert alert-red">
+    <strong>Red team warning:</strong> Backdoors, SSH keys, new accounts, and keyloggers are added in minutes 0–5. You have first access — use it or lose it. If you're not faster than this, you're playing defense from behind for 2 days.
+  </div>
+
+  <h4>Priority 1 — Do these before anything else</h4>
+  <ul class="checklist">
+    <li><div class="check-box"></div><span class="p-tag p1">NOW</span>Change ALL passwords: root, local admins, domain accounts, service accounts, Palo Alto (admin/Changeme123), VyOS router</li>
+    <li><div class="check-box"></div><span class="p-tag p1">NOW</span>Firewall: set egress to DENY ALL by default, then whitelist only required outbound</li>
+    <li><div class="check-box"></div><span class="p-tag p1">NOW</span>Firewall: allow only scored service ports inbound (80, 443, 25, 110, 53, 21, 69/udp, 123/udp)</li>
+    <li><div class="check-box"></div><span class="p-tag p1">NOW</span>Audit <code>/etc/passwd</code> — remove or lock unknown accounts on every Linux box</li>
+    <li><div class="check-box"></div><span class="p-tag p1">NOW</span>Check <code>~/.ssh/authorized_keys</code> on ALL Linux boxes including root — remove unknown keys</li>
+    <li><div class="check-box"></div><span class="p-tag p1">NOW</span>Check Windows AD — remove unknown users, audit Administrators group membership</li>
+    <li><div class="check-box"></div><span class="p-tag p1">NOW</span>Enable Windows Firewall on all Windows boxes, remove all exceptions</li>
+  </ul>
+
+  <h4>Priority 2 — Complete within first 15 minutes</h4>
+  <ul class="checklist">
+    <li><div class="check-box"></div><span class="p-tag p2">SOON</span>Baseline running processes: <code>ps aux > /tmp/baseline_ps.txt</code> on each Linux box</li>
+    <li><div class="check-box"></div><span class="p-tag p2">SOON</span>Baseline open ports: <code>ss -tulpn</code> / <code>netstat -ano</code> on every machine</li>
+    <li><div class="check-box"></div><span class="p-tag p2">SOON</span>Audit crontabs: <code>crontab -l</code> for all users, check <code>/etc/cron*</code></li>
+    <li><div class="check-box"></div><span class="p-tag p2">SOON</span>Start watching auth logs: <code>tail -f /var/log/auth.log</code> and Windows Event Viewer (Security)</li>
+    <li><div class="check-box"></div><span class="p-tag p2">SOON</span>Verify all scored services are UP and passing checks in the NISE Team Portal</li>
+    <li><div class="check-box"></div><span class="p-tag p2">SOON</span>Check <code>/tmp/</code> and hidden directories for unknown files or binaries</li>
+  </ul>
+
+  <h4>Priority 3 — Complete within first 30 minutes</h4>
+  <ul class="checklist">
+    <li><div class="check-box"></div><span class="p-tag p3">SOON</span>Reply to the Welcome inject in NISE (required — signals rule acceptance)</li>
+    <li><div class="check-box"></div><span class="p-tag p3">SOON</span>Find SUID binaries and note them as baseline: <code>find / -perm -4000 -type f 2>/dev/null</code></li>
+    <li><div class="check-box"></div><span class="p-tag p3">SOON</span>Check for immutable files (red team trick): <code>find /etc/ -exec lsattr {} 2>/dev/null \; | grep '^....i'</code></li>
+    <li><div class="check-box"></div><span class="p-tag p3">SOON</span>Set up log monitoring — at minimum <code>tail -f</code> on auth logs on each machine</li>
+    <li><div class="check-box"></div><span class="p-tag p3">SOON</span>Print and distribute password sheets for Day 1 (pre-generated, use words, not random chars)</li>
+  </ul>
+</div>
+
+<!-- SECTION 2: VMs -->
+<div class="section page-break" id="s2">
+  <div class="section-header">
+    <div class="section-num">02</div>
+    <h2>VM Inventory — 11 Machines</h2>
+  </div>
+
+  <div class="alert alert-blue">
+    All VMs run under NETLAB+ VE / Proxmox. Access at <strong>ccdc.cit.morainevalley.edu</strong>. Accounts: v{team#}u1 through v{team#}u8. Each account allows only one simultaneous login. Change your NETLAB password after first login and document it.
+  </div>
+
+  <table>
+    <thead>
+      <tr><th>VM</th><th>OS / Platform</th><th>Role / Services</th><th>Priority</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>Palo Alto FW 1</strong><br><small>Default: admin / Changeme123</small></td><td>PAN-OS</td><td>Perimeter firewall — egress and ingress control. Access via browser or direct CLI.</td><td><span class="badge badge-red">CRITICAL</span></td></tr>
+      <tr><td><strong>Palo Alto FW 2</strong><br><small>Default: admin / Changeme123</small></td><td>PAN-OS</td><td>Secondary firewall. Same default creds — change immediately.</td><td><span class="badge badge-red">CRITICAL</span></td></tr>
+      <tr><td><strong>VyOS Router</strong></td><td>VyOS (Linux-based)</td><td>Core routing. You do NOT have access to the underlying L2 switch.</td><td><span class="badge badge-amber">HIGH</span></td></tr>
+      <tr><td><strong>Server 1</strong></td><td>Linux</td><td>HTTP, HTTPS, DNS — web and DNS services</td><td><span class="badge badge-red">SCORED</span></td></tr>
+      <tr><td><strong>Server 2</strong></td><td>Linux</td><td>SMTP, POP3 — mail services</td><td><span class="badge badge-red">SCORED</span></td></tr>
+      <tr><td><strong>Server 3</strong></td><td>Linux / Windows</td><td>FTP, TFTP, NTP</td><td><span class="badge badge-red">SCORED</span></td></tr>
+      <tr><td><strong>Server 4</strong></td><td>Windows Server</td><td>Active Directory, domain services</td><td><span class="badge badge-red">SCORED</span></td></tr>
+      <tr><td><strong>Server 5</strong></td><td>Linux / Windows</td><td>Web applications, IIS</td><td><span class="badge badge-red">SCORED</span></td></tr>
+      <tr><td><strong>Server 6</strong></td><td>Linux / Windows</td><td>Additional services (check NETLAB topology tab)</td><td><span class="badge badge-amber">HIGH</span></td></tr>
+      <tr><td><strong>Workstation 1</strong></td><td>Windows / Linux</td><td>User workstation — do NOT repurpose or retask</td><td><span class="badge badge-gray">DO NOT TOUCH</span></td></tr>
+      <tr><td><strong>Workstation 2</strong></td><td>Windows / Linux</td><td>User workstation — do NOT repurpose or retask</td><td><span class="badge badge-gray">DO NOT TOUCH</span></td></tr>
+    </tbody>
+  </table>
+
+  <div class="alert alert-amber">
+    <strong>IP addresses:</strong> Core IP table is in the NETLAB+ topology tab → "Content" upper-left. Do NOT change internal IP addressing unless directed by an inject. Do NOT change system names unless directed. This affects the scoring mechanism.
+  </div>
+</div>
+
+<!-- SECTION 3: SCORED SERVICES -->
+<div class="section" id="s3">
+  <div class="section-header">
+    <div class="section-num">03</div>
+    <h2>Scored Services — What Gets Checked</h2>
+  </div>
+
+  <p style="font-size:13px; color:var(--text-muted); margin-bottom:12px;">The scoring engine checks services at random intervals. Services must be functional and serve their intended business purpose — not just open ports. SLA penalty accrues if services are down too long.</p>
+
+  <table>
+    <thead>
+      <tr><th>Service</th><th>Port</th><th>How It's Scored</th><th>Notes</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>HTTP</strong></td><td>80/TCP</td><td>Specific page requested, content compared to expected result byte-for-byte</td><td>Don't change web content without knowing what scorer expects</td></tr>
+      <tr><td><strong>HTTPS</strong></td><td>443/TCP</td><td>Same as HTTP but over SSL — content must match expected file</td><td>SSL cert errors may or may not matter — verify with White Team</td></tr>
+      <tr><td><strong>SMTP</strong></td><td>25/TCP</td><td>Email sent and received via a valid account — simulates employee in the field</td><td>Both send AND receive must work</td></tr>
+      <tr><td><strong>POP3</strong></td><td>110/TCP</td><td>Connections made with AD usernames, commands run, output examined</td><td>Requires AD users to exist and be functional</td></tr>
+      <tr><td><strong>DNS</strong></td><td>53/UDP+TCP</td><td>Lookups performed — each successful response = points</td><td>High frequency — keeping this up is easy points</td></tr>
+      <tr><td><strong>FTP</strong></td><td>21/TCP</td><td>Auth or anonymous access made, presence of specific files checked</td><td>Ensure expected files exist; anonymous may need to be enabled</td></tr>
+      <tr><td><strong>TFTP</strong></td><td>69/UDP</td><td>Pull a small file with an integrity check</td><td>Make sure the expected file is present and unchanged</td></tr>
+      <tr><td><strong>NTP</strong></td><td>123/UDP</td><td>Time integrity check</td><td>Ensure NTP service is running and syncing correctly</td></tr>
+    </tbody>
+  </table>
+
+  <div class="alert alert-red">
+    <strong>Critical:</strong> You MUST NOT block the scoring engine's IP or restrict it via ACLs. You may block single confirmed-malicious IPs, but blocking entire subnets or placing a knife-edge ACL to allow only the scoring engine are both prohibited and will directly reduce your score.
+  </div>
+</div>
+
+<!-- SECTION 4: TEAM ROLES -->
+<div class="section page-break" id="s4">
+  <div class="section-header">
+    <div class="section-num">04</div>
+    <h2>Team Roles & Chain of Command</h2>
+  </div>
+
+  <div class="alert alert-amber">
+    <strong>Scope creep kills teams.</strong> Know your role and stay in your lane unless explicitly asked to help elsewhere. The list below is in order of operational importance.
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h3>🎯 Team Captain</h3>
+      <ul>
+        <li>Coordinates, communicates — STAYS OFF THE KEYBOARD</li>
+        <li>Goes to all CEO inject meetings — never empty-handed</li>
+        <li>Carry a 1-page team status report: injects status, compromises found/cleaned, member tasks, future plans</li>
+        <li>Constantly asks team for feedback on tasks</li>
+        <li>Stops infighting, channels all feedback</li>
+        <li>Does NOT need to be the most technical person</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>📋 Executive Assistant / Runner</h3>
+      <ul>
+        <li>Handles all paperwork-based injects</li>
+        <li>Downloads anything the team needs</li>
+        <li>Steps in for Captain when absent</li>
+        <li>Supports all other roles as needed</li>
+        <li>Inherits physical security responsibilities</li>
+        <li>Gets food / supplies</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>🔥 Firewall Admin</h3>
+      <ul>
+        <li>First task: RAISE SHIELDS — egress deny all, whitelist scored services</li>
+        <li>Monitor ALL outbound connections constantly</li>
+        <li>Egress and ingress filtering</li>
+        <li>IPv6 OFF unless required by inject</li>
+        <li>Palo Alto config — change creds immediately</li>
+        <li>Pass incident reports to IR person</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>🐧 Linux Admin</h3>
+      <ul>
+        <li>Change all passwords immediately</li>
+        <li>Audit users, crontabs, SSH keys</li>
+        <li>iptables hardening, Fail2Ban</li>
+        <li>Watch /var/log/auth.log live</li>
+        <li>Remove unused users and services</li>
+        <li>Baseline and diff process lists</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>🪟 Windows Admin</h3>
+      <ul>
+        <li>Bulk AD password reset immediately</li>
+        <li>GPO: NTLMv2 only, disable LM hash, audit logging</li>
+        <li>Enable Windows Firewall, remove all exceptions</li>
+        <li>Remove unused users and services</li>
+        <li>Autoruns + Process Explorer monitoring</li>
+        <li>Rename default Administrator account</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>🌐 Web Admin</h3>
+      <ul>
+        <li>Find and change all web app passwords</li>
+        <li>Restrict admin interfaces to localhost/admin box</li>
+        <li>Watch access logs — ship to syslog if possible</li>
+        <li>PHP hardening: disable exec, passthru, shell_exec</li>
+        <li>Know what content the scoring engine expects</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>🔍 Incident Responder</h3>
+      <ul>
+        <li>Monitor logs on all systems</li>
+        <li>Fill out IR forms for every confirmed compromise — big points</li>
+        <li>Document everything: what happened, how, when, what changed</li>
+        <li>Check .bash_history, authorized_keys, lsof/netstat</li>
+        <li>Windows: Autoruns, qwinsta, Event Viewer Security</li>
+        <li>Eradicate access, confirm clean, document</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 5: LINUX HARDENING -->
+<div class="section page-break" id="s5">
+  <div class="section-header">
+    <div class="section-num">05</div>
+    <h2>Linux Hardening — Commands</h2>
+  </div>
+
+  <h3>Immediate — accounts and access</h3>
+  <div class="cmd-block"><span class="cmd-comment"># Change root password</span>
+passwd root
+
+<span class="cmd-comment"># List all accounts with shell access</span>
+cat /etc/passwd | grep -v nologin | grep -v false | grep -v sync
+
+<span class="cmd-comment"># Audit all SSH authorized_keys (run as root)</span>
+find / -name authorized_keys 2>/dev/null
+find / -name authorized_keys -exec cat {} \; 2>/dev/null
+
+<span class="cmd-comment"># Check all crontabs</span>
+crontab -l
+for user in $(cut -f1 -d: /etc/passwd); do crontab -u $user -l 2>/dev/null; done
+ls -la /etc/cron* /var/spool/cron/</div>
+
+  <h3>Baseline running state</h3>
+  <div class="cmd-block"><span class="cmd-comment"># Save process baseline (do this at start of EACH day)</span>
+ps aux > /tmp/baseline_ps_$(date +%H%M).txt
+
+<span class="cmd-comment"># Save open port baseline</span>
+ss -tulpn > /tmp/baseline_ports.txt
+
+<span class="cmd-comment"># Active connections</span>
+netstat -antp</div>
+
+  <h3>Firewall with iptables</h3>
+  <div class="cmd-block"><span class="cmd-comment"># Save existing rules first</span>
+iptables-save > /tmp/iptables_backup.rules
+
+<span class="cmd-comment"># Basic lockdown — adjust ports to match your scored services</span>
+iptables -P INPUT DROP
+iptables -P FORWARD DROP
+iptables -P OUTPUT DROP
+
+<span class="cmd-comment"># Allow established connections</span>
+iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+iptables -A OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+<span class="cmd-comment"># Allow loopback</span>
+iptables -A INPUT -i lo -j ACCEPT
+iptables -A OUTPUT -o lo -j ACCEPT
+
+<span class="cmd-comment"># Allow scored services inbound (add/remove as needed)</span>
+iptables -A INPUT -p tcp --dport 80 -j ACCEPT     <span class="cmd-comment"># HTTP</span>
+iptables -A INPUT -p tcp --dport 443 -j ACCEPT    <span class="cmd-comment"># HTTPS</span>
+iptables -A INPUT -p tcp --dport 25 -j ACCEPT     <span class="cmd-comment"># SMTP</span>
+iptables -A INPUT -p tcp --dport 110 -j ACCEPT    <span class="cmd-comment"># POP3</span>
+iptables -A INPUT -p tcp --dport 53 -j ACCEPT     <span class="cmd-comment"># DNS TCP</span>
+iptables -A INPUT -p udp --dport 53 -j ACCEPT     <span class="cmd-comment"># DNS UDP</span>
+iptables -A INPUT -p tcp --dport 21 -j ACCEPT     <span class="cmd-comment"># FTP</span>
+iptables -A INPUT -p udp --dport 69 -j ACCEPT     <span class="cmd-comment"># TFTP</span>
+iptables -A INPUT -p udp --dport 123 -j ACCEPT    <span class="cmd-comment"># NTP</span>
+
+<span class="cmd-comment"># Allow SSH (management — consider restricting by source IP)</span>
+iptables -A INPUT -p tcp --dport 22 -j ACCEPT
+
+<span class="cmd-comment"># Allow outbound DNS, HTTP, NTP (minimum for updates)</span>
+iptables -A OUTPUT -p udp --dport 53 -j ACCEPT
+iptables -A OUTPUT -p tcp --dport 80 -j ACCEPT
+iptables -A OUTPUT -p tcp --dport 443 -j ACCEPT
+iptables -A OUTPUT -p udp --dport 123 -j ACCEPT
+
+<span class="cmd-comment"># Save rules</span>
+iptables-save > /etc/iptables/rules.v4</div>
+
+  <h3>SSH hardening</h3>
+  <div class="cmd-block"><span class="cmd-comment"># Edit /etc/ssh/sshd_config — key settings</span>
+PermitRootLogin no
+PasswordAuthentication yes        <span class="cmd-comment"># keep yes unless you have keys distributed</span>
+MaxAuthTries 3
+AllowUsers youradminuser          <span class="cmd-comment"># whitelist specific users</span>
+
+<span class="cmd-comment"># Restart SSH</span>
+systemctl restart sshd</div>
+
+  <h3>Find red team persistence</h3>
+  <div class="cmd-block"><span class="cmd-comment"># Check for immutable files (common red team trick)</span>
+find /etc/ -exec lsattr {} 2>/dev/null \; | grep '^....i'
+<span class="cmd-comment"># Remove immutable flag: chattr -i /path/to/file</span>
+
+<span class="cmd-comment"># Check /tmp for new binaries or hidden files</span>
+ls -la /tmp/
+find /tmp -executable -type f 2>/dev/null
+
+<span class="cmd-comment"># Check for hidden directories in common locations</span>
+ls -la ~/ /root/ /home/*/
+
+<span class="cmd-comment"># Find all SUID binaries and compare to baseline</span>
+find / -perm -4000 -type f 2>/dev/null | sort > /tmp/suid_now.txt
+<span class="cmd-comment"># diff /tmp/suid_baseline.txt /tmp/suid_now.txt</span>
+
+<span class="cmd-comment"># Find recently modified files in key directories</span>
+find /etc /bin /sbin /usr -newer /tmp/baseline_ps.txt -type f 2>/dev/null
+
+<span class="cmd-comment"># Check bash history</span>
+cat ~/.bash_history
+cat /root/.bash_history</div>
+</div>
+
+<!-- SECTION 6: WINDOWS HARDENING -->
+<div class="section page-break" id="s6">
+  <div class="section-header">
+    <div class="section-num">06</div>
+    <h2>Windows Hardening — Commands & GPO</h2>
+  </div>
+
+  <h3>Immediate — passwords</h3>
+  <div class="cmd-block"><span class="cmd-comment">// Bulk AD password reset via dsquery (run on DC)</span>
+dsquery user ou=Users,dc=domain,dc=local | dsmod user -pwd NewSecureP@ss1! -mustchpwd yes
+
+<span class="cmd-comment">// Check local administrators</span>
+net localgroup administrators
+
+<span class="cmd-comment">// List logged-in sessions</span>
+qwinsta
+
+<span class="cmd-comment">// Enable Windows Firewall (all profiles)</span>
+netsh advfirewall set allprofiles state on</div>
+
+  <h3>Key GPO Security Settings</h3>
+  <table>
+    <thead><tr><th>Setting</th><th>Value</th><th>Path</th></tr></thead>
+    <tbody>
+      <tr><td>LAN Manager auth level</td><td>Send NTLMv2 only, refuse NTLM &amp; LM</td><td>Security Options</td></tr>
+      <tr><td>Do not store LAN Manager hash</td><td>Enabled</td><td>Security Options</td></tr>
+      <tr><td>No anonymous enum of SAM accounts</td><td>Enabled</td><td>Network Access</td></tr>
+      <tr><td>Allow anonymous SID/name translation</td><td>Disabled</td><td>Network Access</td></tr>
+      <tr><td>Rename Administrator account</td><td>Rename to something unique (remember it)</td><td>Account Policies</td></tr>
+      <tr><td>Audit process tracking</td><td>Successes</td><td>Audit Policy</td></tr>
+      <tr><td>Audit account management</td><td>Successes + Failures</td><td>Audit Policy</td></tr>
+      <tr><td>Audit logon events</td><td>Successes + Failures</td><td>Audit Policy</td></tr>
+      <tr><td>Debug programs</td><td>Remove ALL groups/users</td><td>User Rights Assignment</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Apply security config via secedit</h3>
+  <div class="cmd-block"><span class="cmd-comment">// Export current config for reference</span>
+secedit /export /cfg current_sec.inf
+
+<span class="cmd-comment">// Apply hardened config</span>
+secedit /configure /db secedit.sdb /cfg hardened.inf</div>
+
+  <h3>Red team persistence indicators</h3>
+  <div class="cmd-block"><span class="cmd-comment">// Check autoruns (download Sysinternals Autoruns from Microsoft)</span>
+<span class="cmd-comment">// Autoruns.exe — look at ALL tabs, especially:</span>
+<span class="cmd-comment">// HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run</span>
+<span class="cmd-comment">// Scheduled Tasks</span>
+<span class="cmd-comment">// Services</span>
+<span class="cmd-comment">// Browser extensions</span>
+
+<span class="cmd-comment">// WARNING: If notepad.exe is running without a user opening it = likely compromised</span>
+<span class="cmd-comment">// Use Process Explorer to see parent process of everything suspicious</span>
+
+<span class="cmd-comment">// Disable Teredo (IPv6 tunnel — red team vector)</span>
+netsh interface teredo set state disabled</div>
+</div>
+
+<!-- SECTION 7: FIREWALL -->
+<div class="section page-break" id="s7">
+  <div class="section-header">
+    <div class="section-num">07</div>
+    <h2>Firewall / Network — Palo Alto & VyOS</h2>
+  </div>
+
+  <div class="alert alert-red">
+    <strong>Palo Alto default credentials: admin / Changeme123</strong> — Change these FIRST before anything else on the firewall. Both Linux FW and Windows FW.
+  </div>
+
+  <h3>Core firewall strategy (from red team)</h3>
+  <table>
+    <thead><tr><th>What stops us most</th><th>How to implement it</th></tr></thead>
+    <tbody>
+      <tr><td><strong>#1: Strong Egress Filtering</strong> — stops callbacks, alerts you to activity, forces you to think about what's talking</td><td>Default DENY outbound. Whitelist only: DNS (53), HTTP/S for updates (80/443), NTP (123), scored service responses. Everything else drops.</td></tr>
+      <tr><td><strong>#2: Good Ingress Filtering</strong> — only allow scored services, everything else DENY</td><td>Allow only the 8 scored service ports. Deny all else. Double-check periodically — red team may have changed rules.</td></tr>
+      <tr><td><strong>#3: Watching Logs</strong> — red team says most teams don't actually look at logs</td><td>Someone must have firewall logs open. Any unexpected outbound connection = immediate investigation.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Allowed inbound ports (scored services)</h3>
+  <div class="cmd-block">TCP  80   HTTP
+TCP  443  HTTPS
+TCP  25   SMTP
+TCP  110  POP3
+UDP  53   DNS
+TCP  53   DNS (also allow TCP)
+TCP  21   FTP (also consider passive FTP ports if needed)
+UDP  69   TFTP
+UDP  123  NTP</div>
+
+  <h3>Critical rules — read carefully</h3>
+  <ul class="checklist">
+    <li><div class="check-box"></div>NEVER block entire IP subnets — rules violation and scoring penalty</li>
+    <li><div class="check-box"></div>NEVER place a knife-edge ACL at ingress to allow only the scoring engine — prohibited</li>
+    <li><div class="check-box"></div>You MAY block single confirmed-malicious IPs — report via Support Ticket</li>
+    <li><div class="check-box"></div>Traffic generators send suspicious traffic from random IPs — do NOT block those subnets</li>
+    <li><div class="check-box"></div>Scoring engine MUST always be able to reach your services — any block = direct point loss</li>
+    <li><div class="check-box"></div>IPv6: disable unless required by an inject</li>
+    <li><div class="check-box"></div>Monitor outbound constantly — unexpected egress = red team callback = you're compromised</li>
+  </ul>
+</div>
+
+<!-- SECTION 8: WEB -->
+<div class="section" id="s8">
+  <div class="section-header">
+    <div class="section-num">08</div>
+    <h2>Web / Application Hardening</h2>
+  </div>
+
+  <div class="alert alert-amber">
+    HTTP and HTTPS are content-match scored — the engine compares returned page content to an expected file. Do NOT change web content without first knowing what the scoring engine expects. When in doubt, ask the White Team.
+  </div>
+
+  <h3>Immediate steps</h3>
+  <ul class="checklist">
+    <li><div class="check-box"></div>Find all web application admin interfaces (/admin, /wp-admin, /phpmyadmin, /manager) and restrict to localhost or admin machine only</li>
+    <li><div class="check-box"></div>Change ALL web app passwords — red team found them before you did</li>
+    <li><div class="check-box"></div>Start watching access logs live: <code>tail -f /var/log/apache2/access.log</code></li>
+    <li><div class="check-box"></div>Understand what the web app does in the context of the business scenario</li>
+  </ul>
+
+  <h3>PHP hardening (if applicable)</h3>
+  <div class="cmd-block"><span class="cmd-comment"># Edit /etc/php/*/php.ini</span>
+disable_functions = exec,passthru,shell_exec,system,popen,proc_open,curl_exec
+expose_php = Off
+display_errors = Off
+log_errors = On
+allow_url_include = Off</div>
+
+  <h3>Apache / Nginx hardening</h3>
+  <div class="cmd-block"><span class="cmd-comment"># Hide server version</span>
+ServerTokens Prod
+ServerSignature Off
+
+<span class="cmd-comment"># Disable directory listing</span>
+Options -Indexes
+
+<span class="cmd-comment"># Check for mod_security (install if not present — ask White Team for approval)</span>
+apachectl -M | grep security</div>
+</div>
+
+<!-- SECTION 9: INJECTS -->
+<div class="section page-break" id="s9">
+  <div class="section-header">
+    <div class="section-num">09</div>
+    <h2>Injects & Business Tasks</h2>
+  </div>
+
+  <div class="alert alert-blue">
+    Injects are worth <strong>35–50% of your total score</strong> — equal to service uptime. Missing injects to chase technical problems is one of the most common ways teams lose. Assign a dedicated person to monitor NISE at all times.
+  </div>
+
+  <h3>Inject checklist</h3>
+  <ul class="checklist">
+    <li><div class="check-box"></div><span class="p-tag p1">NOW</span>Reply to Welcome inject at 8:00 AM on Day 1 — required, signals rule acceptance</li>
+    <li><div class="check-box"></div>Complete pre-competition survey (every team member)</li>
+    <li><div class="check-box"></div>Assign runner / executive assistant to own all paperwork injects</li>
+    <li><div class="check-box"></div>Monitor NISE Team Portal constantly — all injects, scoring, and service status are there</li>
+    <li><div class="check-box"></div>Captain goes to CEO meetings — always carry a 1-page status report</li>
+    <li><div class="check-box"></div>Submit Incident Response reports for every confirmed compromise — this is a significant point source</li>
+    <li><div class="check-box"></div>Use Support Services for all requests: software downloads, service checks, system resets, password changes</li>
+    <li><div class="check-box"></div>Always identify by team number, NEVER by school name</li>
+    <li><div class="check-box"></div>Prepare a Disaster Recovery Plan for a critical service — this is a known inject type</li>
+  </ul>
+
+  <h3>1-page captain status report (bring to every CEO meeting)</h3>
+  <table>
+    <thead><tr><th>Item</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>Injects completed</td><td>_____ / total</td></tr>
+      <tr><td>Injects in progress</td><td>_____</td></tr>
+      <tr><td>Services up</td><td>_____ / 8 scored</td></tr>
+      <tr><td>Compromises found</td><td>_____ (detail available)</td></tr>
+      <tr><td>Compromises cleaned</td><td>_____</td></tr>
+      <tr><td>Each member status</td><td>[name]: working on _____</td></tr>
+      <tr><td>Next priorities</td><td>_____</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Support Services access</h3>
+  <p style="font-size:13px; color:var(--text-muted); margin-bottom:8px;">Access Support Services via browser using same account/password as NISE. Use it for: system reset requests, password change notifications for scored accounts, software requests, service check requests.</p>
+  <div class="alert alert-amber"><strong>Important:</strong> If you change a password on a scored service account, you MUST submit a Support Ticket with the new password. Failing to do so = scoring engine can't authenticate = points lost.</div>
+</div>
+
+<!-- SECTION 10: SCORING -->
+<div class="section" id="s10">
+  <div class="section-header">
+    <div class="section-num">10</div>
+    <h2>Scoring Breakdown</h2>
+  </div>
+
+  <h3>Point allocation</h3>
+  <div class="score-bar">
+    <div class="score-seg" style="width:42%; background:var(--blue-light); color:var(--blue);">Services 35–50%</div>
+    <div class="score-seg" style="width:42%; background:var(--green-light); color:var(--green);">Injects 35–50%</div>
+    <div class="score-seg" style="width:16%; background:var(--amber-light); color:var(--amber);">IR 10–30%</div>
+  </div>
+  <p style="font-size:12px; color:var(--text-muted);">Exact percentages set by White Team on competition day.</p>
+
+  <div class="grid2" style="margin-top:16px;">
+    <div>
+      <h3>Score killers</h3>
+      <table>
+        <tbody>
+          <tr><td>Services go down (SLA accrues)</td><td><span class="badge badge-red">−pts</span></td></tr>
+          <tr><td>Missing or late inject submission</td><td><span class="badge badge-red">−pts</span></td></tr>
+          <tr><td>Blocking scoring engine</td><td><span class="badge badge-red">direct loss</span></td></tr>
+          <tr><td>System restoration requests</td><td><span class="badge badge-amber">noted</span></td></tr>
+          <tr><td>Red team successful exploitation</td><td><span class="badge badge-amber">IR assessed</span></td></tr>
+          <tr><td>Blocking entire IP subnets</td><td><span class="badge badge-red">penalty</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <h3>Score boosters</h3>
+      <table>
+        <tbody>
+          <tr><td>All scored services passing checks</td><td><span class="badge badge-green">+pts/check</span></td></tr>
+          <tr><td>Injects completed with documentation</td><td><span class="badge badge-green">+variable</span></td></tr>
+          <tr><td>IR reports with full exploit detail</td><td><span class="badge badge-green">+big</span></td></tr>
+          <tr><td>CEO meeting with prepared report</td><td><span class="badge badge-green">+inject pts</span></td></tr>
+          <tr><td>Disaster Recovery Plan inject</td><td><span class="badge badge-green">+pts</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 11: RULES -->
+<div class="section page-break" id="s11">
+  <div class="section-header">
+    <div class="section-num">11</div>
+    <h2>Competition Rules — Must-Know</h2>
+  </div>
+
+  <div class="alert alert-red">
+    <strong>Instant disqualification:</strong> Any offensive activity (port scans, vulnerability scans, unauthorized connections) against other teams, White Team, or Red Team.
+  </div>
+
+  <h3>Technical rules</h3>
+  <ul class="checklist">
+    <li><div class="check-box"></div>You MAY move a service to another platform — same public IP and DNS naming required</li>
+    <li><div class="check-box"></div>You MAY containerize a service (note NCCDC rule 4n if advancing)</li>
+    <li><div class="check-box"></div>You MUST maintain public services accessible from nominally all source IPs</li>
+    <li><div class="check-box"></div>You MAY block single confirmed-malicious IPs — not subnets</li>
+    <li><div class="check-box"></div>Do NOT change internal IP addressing unless directed by inject</li>
+    <li><div class="check-box"></div>Do NOT change system names unless directed — affects scoring</li>
+    <li><div class="check-box"></div>Workstations may NOT be repurposed</li>
+    <li><div class="check-box"></div>No peer-to-peer file sharing unless specifically authorized</li>
+  </ul>
+
+  <h3>Access / communication rules</h3>
+  <ul class="checklist">
+    <li><div class="check-box"></div>No external communication — no calls, emails, chat, forum posts with non-team members</li>
+    <li><div class="check-box"></div>No private external FTP sites, staging areas, Google Drive, or personal cloud storage</li>
+    <li><div class="check-box"></div>All internet resources used must be freely available to all teams</li>
+    <li><div class="check-box"></div>GitHub repos will be copied to Nextcloud — accessible to all teams, use that</li>
+    <li><div class="check-box"></div>No USB drives, CD-ROMs unless authorized by Black/White Team in advance</li>
+    <li><div class="check-box"></div>Printed reference materials (books, checklists) ARE permitted</li>
+  </ul>
+
+  <h3>NETLAB access rules</h3>
+  <ul class="checklist">
+    <li><div class="check-box"></div>DO NOT accidentally end your NETLAB reservation — this resets your entire environment</li>
+    <li><div class="check-box"></div>Change NETLAB password after first login and document it immediately</li>
+    <li><div class="check-box"></div>System restores reset all vulnerabilities AND negatively impact scores — avoid requesting them</li>
+    <li><div class="check-box"></div>Green Team and White Team will access your VMs for scoring — do not be alarmed, it won't hurt you</li>
+  </ul>
+</div>
+
+<!-- SECTION 12: RED TEAM INTEL -->
+<div class="section" id="s12">
+  <div class="section-header">
+    <div class="section-num">12</div>
+    <h2>Red Team Intel — What Actually Stops Them</h2>
+  </div>
+
+  <div class="alert alert-green">
+    From the red team's own slides: <strong>"You don't need fancy tools. You need speed, discipline and focus."</strong> The basics done fast win every time.
+  </div>
+
+  <h3>What the red team says works against them (do these)</h3>
+  <table>
+    <thead><tr><th>Defense</th><th>Why it works</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Strong egress filtering</strong></td><td>Stops callbacks. Alerts you to their activity. Forces you to think about what's talking outbound.</td></tr>
+      <tr><td><strong>Good ingress filtering</strong></td><td>Only allow scored services — everything else DENY by default. Check periodically.</td></tr>
+      <tr><td><strong>Changing passwords fast</strong></td><td>Do it fast, do it often. Automate it. Include local admin accounts AND computer accounts. Create new admins and switch.</td></tr>
+      <tr><td><strong>Actually watching logs</strong></td><td>"We do not have the time to worry about them most of the time." Watching logs pays dividends.</td></tr>
+      <tr><td><strong>Network traffic awareness</strong></td><td>Know what expected traffic looks like. Kill/block anything that isn't a scored service connection.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>What the red team says does NOT stop them (don't waste time)</h3>
+  <ul class="checklist">
+    <li><div class="check-box"></div>Patching everything — patch only what is actually exploitable, maximize impact per time spent</li>
+    <li><div class="check-box"></div>Complex SIEM setups — you don't have time to install and configure them, much less watch them</li>
+    <li><div class="check-box"></div>Threat hunting — you're blue team, focus on the basics</li>
+    <li><div class="check-box"></div>"Next gen" anything — simple tools done well beat fancy tools done poorly</li>
+    <li><div class="check-box"></div>Snort / Splunk / Nagios — no time to configure and watch them</li>
+  </ul>
+
+  <h3>What the red team actually uses to get in</h3>
+  <ul class="checklist">
+    <li><div class="check-box"></div>Default credentials — this is their #1 method, not 0days or advanced tools</li>
+    <li><div class="check-box"></div>Default web app admin passwords</li>
+    <li><div class="check-box"></div>Pre-placed backdoors and SSH keys from before flag drop</li>
+    <li><div class="check-box"></div>Metasploit psexec, MS08_067, MS09_050 (classic Windows exploits)</li>
+    <li><div class="check-box"></div>Persistence via scheduled tasks, registry run keys, services</li>
+  </ul>
+
+  <div class="alert alert-blue">
+    <strong>0day reminder:</strong> No one is going to drop 0day at CCDC. Patch what is exploitable and known, not everything. Prioritize speed over completeness.
+  </div>
+</div>
+
+</div><!-- end .content -->
+
+<div class="footer">
+  <span>MACCDC 2026 Blue Team Playbook · March 27–28, 2026</span>
+  <span>Based on 2026 MACCDC Regional Team Packet + Red Team "How to Win CCDC" slide deck</span>
+  <span class="no-print">Use Ctrl+P or the Print button to save as PDF</span>
+</div>
+
+</body>
+</html>
