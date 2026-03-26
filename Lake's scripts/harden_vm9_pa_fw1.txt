@@ -1,0 +1,327 @@
+# =============================================================================
+# VM9 - Palo Alto FW1 (LINUX ZONE) Hardening Commands
+# MACCDC 2026 - PAN-OS CLI Commands
+# =============================================================================
+#
+# This firewall protects the LINUX LAN (172.20.242.0/24)
+#
+# NETWORK:
+#   Outside: 172.16.101.254/24 (to VyOS Net1)
+#   Inside:  172.20.242.254/24 (Linux LAN)
+#   Mgmt:    172.20.242.150
+#
+# SCORED SERVICES BEHIND THIS FIREWALL:
+#   VM1 Ubuntu Ecom   (172.20.242.30)  - HTTP(80), HTTPS(443)
+#   VM2 Fedora Webmail (172.20.242.40)  - HTTP(80), HTTPS(443), SMTP(25), POP3(110)
+#
+# DEFAULT CREDS: admin:Changeme123
+#
+# HOW TO USE:
+#   1. SSH to FW1 management: ssh admin@172.20.242.150
+#   2. Run SECTION 1 (audit) commands first in operational mode
+#   3. Enter configure mode: configure
+#   4. Paste hardening commands section by section
+#   5. commit after each section
+# =============================================================================
+
+
+# =============================================================================
+# SECTION 1: PRE-HARDENING AUDIT (OPERATIONAL MODE)
+# =============================================================================
+# >>> PASTE THIS FIRST - OPERATIONAL MODE <<<
+# Review output carefully before making changes!
+
+show system info
+show admins
+show admins all
+show session all
+show session all filter state active
+show running security-policy
+show interface all
+show arp all
+show routing route
+show config running | match users
+show clock
+
+# =============================================================================
+# SECTION 2: ENTER CONFIGURE MODE
+# =============================================================================
+# >>> PASTE THIS <<<
+
+configure
+
+# =============================================================================
+# SECTION 3: CREDENTIAL CHANGES (DO THIS FIRST!)
+# =============================================================================
+# >>> PASTE THESE ONE AT A TIME - THEY ARE INTERACTIVE <<<
+# Each password command will prompt you to type the password.
+
+# Change the admin password (INTERACTIVE - will prompt)
+set mgt-config users admin password
+
+# Create backup admin account (INTERACTIVE - will prompt for password)
+set mgt-config users blueteam permissions role-based superuser yes
+set mgt-config users blueteam password
+
+commit
+
+# =============================================================================
+# SECTION 4: SYSTEM HARDENING
+# =============================================================================
+# >>> PASTE THIS <<<
+
+# Set hostname
+set deviceconfig system hostname PA-FW-LINUX
+
+# Set domain
+set deviceconfig system domain ccdc.local
+
+# Set login banner
+set deviceconfig system login-banner "AUTHORIZED USE ONLY. All activity is monitored and recorded. Unauthorized access will be reported."
+
+# Set timezone
+set deviceconfig system timezone America/New_York
+
+# Set DNS servers
+set deviceconfig system dns-setting servers primary 8.8.8.8
+set deviceconfig system dns-setting servers secondary 8.8.4.4
+
+# Set NTP servers
+set deviceconfig system ntp-servers primary-ntp-server ntp-server-address 0.pool.ntp.org
+set deviceconfig system ntp-servers secondary-ntp-server ntp-server-address 1.pool.ntp.org
+
+# Disable IPv6 on the firewall
+set deviceconfig setting session ipv6-firewalling no
+
+commit
+
+# =============================================================================
+# SECTION 5: MANAGEMENT PLANE HARDENING
+# =============================================================================
+# >>> PASTE THIS <<<
+
+# Restrict management access to Linux LAN only
+set deviceconfig system permitted-ip 172.20.242.0/24
+
+# Disable HTTP on management (force HTTPS only)
+set deviceconfig system service disable-http yes
+
+# Disable Telnet on management
+set deviceconfig system service disable-telnet yes
+
+# Disable SNMP if not needed
+set deviceconfig system service disable-snmp yes
+
+# Disable HTTP OCSP
+set deviceconfig system service disable-http-ocsp yes
+
+# Disable device telemetry
+set deviceconfig system update-schedule threats disabled yes
+set deviceconfig setting management disable-predefined-reports yes
+
+# Set password complexity profile
+set mgt-config password-complexity enabled yes
+set mgt-config password-complexity minimum-length 8
+set mgt-config password-complexity minimum-uppercase-letters 1
+set mgt-config password-complexity minimum-lowercase-letters 1
+set mgt-config password-complexity minimum-numeric-letters 1
+set mgt-config password-complexity minimum-special-characters 1
+
+# Set account lockout
+set deviceconfig setting management admin-lockout failed-attempts 5
+set deviceconfig setting management admin-lockout lockout-time 30
+
+# Set idle timeout (minutes)
+set deviceconfig setting management idle-timeout 15
+
+commit
+
+# =============================================================================
+# SECTION 6: SECURITY POLICY - DENY IPv6
+# =============================================================================
+# >>> PASTE THIS <<<
+# Add deny-IPv6 rule at the top of the rulebase to prevent IPv6 abuse
+
+set rulebase security rules Deny-IPv6 from any
+set rulebase security rules Deny-IPv6 to any
+set rulebase security rules Deny-IPv6 source any
+set rulebase security rules Deny-IPv6 destination any
+set rulebase security rules Deny-IPv6 application any
+set rulebase security rules Deny-IPv6 service any
+set rulebase security rules Deny-IPv6 action deny
+set rulebase security rules Deny-IPv6 source-hip any
+set rulebase security rules Deny-IPv6 destination-hip any
+set rulebase security rules Deny-IPv6 log-start yes
+set rulebase security rules Deny-IPv6 log-end yes
+set rulebase security rules Deny-IPv6 description "Deny all IPv6 traffic"
+
+# Move this rule to the top of the rulebase
+move rulebase security rules Deny-IPv6 top
+
+commit
+
+# =============================================================================
+# SECTION 7: VERIFY/CREATE SECURITY POLICIES FOR SCORED SERVICES
+# =============================================================================
+# >>> DO NOT PASTE BLINDLY - VERIFY EXISTING RULES FIRST <<<
+# Run: show running security-policy
+# Only add rules if they don't already exist!
+#
+# The following rules ensure scored services are reachable.
+# Traffic flow: Internet -> VyOS -> FW1 outside -> FW1 inside -> Server
+#
+# IMPORTANT: Orange team sends traffic from RANDOM IPs.
+# Do NOT restrict source IPs for scored service rules.
+
+# Rule: Allow HTTP/HTTPS to Ubuntu Ecom (VM1)
+set rulebase security rules Allow-Ecom-Web from outside
+set rulebase security rules Allow-Ecom-Web to inside
+set rulebase security rules Allow-Ecom-Web source any
+set rulebase security rules Allow-Ecom-Web destination 172.20.242.30
+set rulebase security rules Allow-Ecom-Web application web-browsing ssl
+set rulebase security rules Allow-Ecom-Web service application-default
+set rulebase security rules Allow-Ecom-Web action allow
+set rulebase security rules Allow-Ecom-Web log-end yes
+set rulebase security rules Allow-Ecom-Web description "Allow HTTP/HTTPS to Ecom server - SCORED"
+
+# Rule: Allow HTTP/HTTPS to Fedora Webmail UI (VM2)
+set rulebase security rules Allow-Webmail-Web from outside
+set rulebase security rules Allow-Webmail-Web to inside
+set rulebase security rules Allow-Webmail-Web source any
+set rulebase security rules Allow-Webmail-Web destination 172.20.242.40
+set rulebase security rules Allow-Webmail-Web application web-browsing ssl
+set rulebase security rules Allow-Webmail-Web service application-default
+set rulebase security rules Allow-Webmail-Web action allow
+set rulebase security rules Allow-Webmail-Web log-end yes
+set rulebase security rules Allow-Webmail-Web description "Allow HTTP/HTTPS to Webmail - SCORED"
+
+# Rule: Allow SMTP to Fedora Webmail (VM2)
+set rulebase security rules Allow-Webmail-SMTP from outside
+set rulebase security rules Allow-Webmail-SMTP to inside
+set rulebase security rules Allow-Webmail-SMTP source any
+set rulebase security rules Allow-Webmail-SMTP destination 172.20.242.40
+set rulebase security rules Allow-Webmail-SMTP application smtp
+set rulebase security rules Allow-Webmail-SMTP service application-default
+set rulebase security rules Allow-Webmail-SMTP action allow
+set rulebase security rules Allow-Webmail-SMTP log-end yes
+set rulebase security rules Allow-Webmail-SMTP description "Allow SMTP to Webmail - SCORED"
+
+# Rule: Allow POP3 to Fedora Webmail (VM2)
+set rulebase security rules Allow-Webmail-POP3 from outside
+set rulebase security rules Allow-Webmail-POP3 to inside
+set rulebase security rules Allow-Webmail-POP3 source any
+set rulebase security rules Allow-Webmail-POP3 destination 172.20.242.40
+set rulebase security rules Allow-Webmail-POP3 application pop3
+set rulebase security rules Allow-Webmail-POP3 service application-default
+set rulebase security rules Allow-Webmail-POP3 action allow
+set rulebase security rules Allow-Webmail-POP3 log-end yes
+set rulebase security rules Allow-Webmail-POP3 description "Allow POP3 to Webmail - SCORED"
+
+# Rule: Allow outbound from inside (so servers can respond, get updates, etc.)
+set rulebase security rules Allow-Inside-Out from inside
+set rulebase security rules Allow-Inside-Out to outside
+set rulebase security rules Allow-Inside-Out source any
+set rulebase security rules Allow-Inside-Out destination any
+set rulebase security rules Allow-Inside-Out application any
+set rulebase security rules Allow-Inside-Out service any
+set rulebase security rules Allow-Inside-Out action allow
+set rulebase security rules Allow-Inside-Out log-end yes
+set rulebase security rules Allow-Inside-Out description "Allow outbound from Linux LAN"
+
+commit
+
+# =============================================================================
+# SECTION 8: THREAT PREVENTION (IF LICENSED)
+# =============================================================================
+# >>> PASTE THIS - ERRORS ARE OK IF NOT LICENSED <<<
+
+# Enable logging of security profiles
+set rulebase security rules Allow-Ecom-Web profile-setting profiles virus default
+set rulebase security rules Allow-Ecom-Web profile-setting profiles spyware default
+set rulebase security rules Allow-Ecom-Web profile-setting profiles vulnerability default
+
+set rulebase security rules Allow-Webmail-Web profile-setting profiles virus default
+set rulebase security rules Allow-Webmail-Web profile-setting profiles spyware default
+set rulebase security rules Allow-Webmail-Web profile-setting profiles vulnerability default
+
+set rulebase security rules Allow-Webmail-SMTP profile-setting profiles virus default
+set rulebase security rules Allow-Webmail-SMTP profile-setting profiles spyware default
+
+commit
+
+# =============================================================================
+# SECTION 9: LOG FORWARDING (OPTIONAL)
+# =============================================================================
+# >>> DO NOT PASTE - REFERENCE ONLY <<<
+# If you have a syslog/SIEM server, forward logs:
+#
+# set shared log-settings syslog BlueTeam-Syslog server SIEM transport UDP
+# set shared log-settings syslog BlueTeam-Syslog server SIEM server <SIEM_IP>
+# set shared log-settings syslog BlueTeam-Syslog server SIEM port 514
+# set shared log-settings syslog BlueTeam-Syslog server SIEM facility LOG_USER
+
+# =============================================================================
+# SECTION 10: FINAL COMMIT AND EXIT
+# =============================================================================
+# >>> PASTE THIS <<<
+
+commit
+exit
+
+# =============================================================================
+# SECTION 11: POST-HARDENING VERIFICATION (OPERATIONAL MODE)
+# =============================================================================
+# >>> PASTE THIS <<<
+
+show system info
+show admins
+show running security-policy
+show interface all
+show routing route
+show session all filter state active
+
+# Test policy matches for scored services
+test security-policy-match source 1.2.3.4 destination 172.20.242.30 protocol 6 destination-port 80 from outside to inside
+test security-policy-match source 1.2.3.4 destination 172.20.242.30 protocol 6 destination-port 443 from outside to inside
+test security-policy-match source 1.2.3.4 destination 172.20.242.40 protocol 6 destination-port 80 from outside to inside
+test security-policy-match source 1.2.3.4 destination 172.20.242.40 protocol 6 destination-port 443 from outside to inside
+test security-policy-match source 1.2.3.4 destination 172.20.242.40 protocol 6 destination-port 25 from outside to inside
+test security-policy-match source 1.2.3.4 destination 172.20.242.40 protocol 6 destination-port 110 from outside to inside
+
+# Save config
+save config to running-config-backup.xml
+
+# =============================================================================
+# EMERGENCY: IF YOU GET LOCKED OUT
+# =============================================================================
+# >>> DO NOT PASTE - REFERENCE ONLY <<<
+#
+# Option 1: Access via console through NETLAB
+# Option 2: Access via web UI at https://172.20.242.150
+# Option 3: If management is locked, access from a host in 172.20.242.0/24
+#
+# To reset management access:
+#   configure
+#   delete deviceconfig system permitted-ip
+#   set deviceconfig system service disable-http no
+#   commit
+# =============================================================================
+# INCIDENT RESPONSE: BLOCK A SPECIFIC MALICIOUS IP
+# =============================================================================
+# >>> MODIFY AND PASTE AS NEEDED <<<
+# Only block confirmed /32 IPs per competition rules!
+#
+#   configure
+#   set rulebase security rules Block-Malicious-IP from any
+#   set rulebase security rules Block-Malicious-IP to any
+#   set rulebase security rules Block-Malicious-IP source X.X.X.X
+#   set rulebase security rules Block-Malicious-IP destination any
+#   set rulebase security rules Block-Malicious-IP application any
+#   set rulebase security rules Block-Malicious-IP service any
+#   set rulebase security rules Block-Malicious-IP action deny
+#   set rulebase security rules Block-Malicious-IP log-start yes
+#   set rulebase security rules Block-Malicious-IP log-end yes
+#   set rulebase security rules Block-Malicious-IP description "Block attacker X.X.X.X"
+#   move rulebase security rules Block-Malicious-IP top
+#   commit
+# =============================================================================

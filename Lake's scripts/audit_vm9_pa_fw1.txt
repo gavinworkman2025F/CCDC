@@ -1,0 +1,234 @@
+# =============================================================================
+# VM9 - Palo Alto FW1 (LINUX ZONE) Audit Commands
+# MACCDC 2026 - PAN-OS Operational Mode Commands
+# =============================================================================
+#
+# This firewall protects the LINUX LAN (172.20.242.0/24)
+#
+# NETWORK:
+#   Outside: 172.16.101.254/24 (to VyOS Net1)
+#   Inside:  172.20.242.254/24 (Linux LAN)
+#   Mgmt:    172.20.242.150
+#
+# SCORED SERVICES BEHIND THIS FIREWALL:
+#   VM1 Ubuntu Ecom   (172.20.242.30)  - HTTP(80), HTTPS(443)
+#   VM2 Fedora Webmail (172.20.242.40)  - HTTP(80), HTTPS(443), SMTP(25), POP3(110)
+#
+# HOW TO USE:
+#   1. SSH to FW1: ssh admin@172.20.242.150
+#   2. Stay in operational mode (do NOT enter configure)
+#   3. Paste sections one at a time and review output
+#   4. Run periodically to detect unauthorized changes
+# =============================================================================
+
+
+# =============================================================================
+# SECTION 1: SYSTEM INFORMATION
+# =============================================================================
+# >>> PASTE THIS <<<
+
+show system info
+show clock
+show system disk-space
+show system resources
+
+# =============================================================================
+# SECTION 2: ADMIN ACCOUNT AUDIT
+# =============================================================================
+# >>> PASTE THIS <<<
+# EXPECTED ADMINS: admin, blueteam (and any team-created accounts)
+# FLAG anything else as SUSPICIOUS - red team may have added backdoor admins!
+
+show admins
+show admins all
+show config running | match users
+show config running | match admin
+
+# =============================================================================
+# SECTION 3: SECURITY POLICY AUDIT (CRITICAL)
+# =============================================================================
+# >>> PASTE THIS <<<
+# Review ALL rules. Look for:
+#   - Rules you didn't create (especially "allow any any")
+#   - Modified rules (changed source/destination)
+#   - Disabled rules that should be enabled
+#   - Rules with "any" source AND "any" destination (overly permissive)
+
+show running security-policy
+show running nat-policy
+
+# =============================================================================
+# SECTION 4: VERIFY SCORED SERVICE POLICIES
+# =============================================================================
+# >>> PASTE THIS <<<
+# These test that the firewall will allow scored service traffic through.
+# Source 1.2.3.4 simulates an external IP (orange team/scoring engine).
+# ALL of these should match an ALLOW rule.
+
+# Test HTTP to Ecom (VM1)
+test security-policy-match source 1.2.3.4 destination 172.20.242.30 protocol 6 destination-port 80 from outside to inside
+
+# Test HTTPS to Ecom (VM1)
+test security-policy-match source 1.2.3.4 destination 172.20.242.30 protocol 6 destination-port 443 from outside to inside
+
+# Test HTTP to Webmail (VM2)
+test security-policy-match source 1.2.3.4 destination 172.20.242.40 protocol 6 destination-port 80 from outside to inside
+
+# Test HTTPS to Webmail (VM2)
+test security-policy-match source 1.2.3.4 destination 172.20.242.40 protocol 6 destination-port 443 from outside to inside
+
+# Test SMTP to Webmail (VM2)
+test security-policy-match source 1.2.3.4 destination 172.20.242.40 protocol 6 destination-port 25 from outside to inside
+
+# Test POP3 to Webmail (VM2)
+test security-policy-match source 1.2.3.4 destination 172.20.242.40 protocol 6 destination-port 110 from outside to inside
+
+# =============================================================================
+# SECTION 5: INTERFACE AUDIT
+# =============================================================================
+# >>> PASTE THIS <<<
+# EXPECTED:
+#   Outside interface: 172.16.101.254/24 (up)
+#   Inside interface:  172.20.242.254/24 (up)
+#   Management:        172.20.242.150    (up)
+# FLAG any changed IPs, down interfaces, or extra interfaces
+
+show interface all
+show interface ethernet1/1
+show interface ethernet1/2
+show interface management
+
+# =============================================================================
+# SECTION 6: ROUTING AUDIT
+# =============================================================================
+# >>> PASTE THIS <<<
+# EXPECTED:
+#   172.16.101.0/24 - connected (outside interface)
+#   172.20.242.0/24 - connected (inside interface)
+#   0.0.0.0/0       - via 172.16.101.1 (default route through VyOS)
+# FLAG unexpected routes
+
+show routing route
+show routing summary
+show routing protocol bgp summary
+show routing protocol ospf summary
+
+# =============================================================================
+# SECTION 7: ARP TABLE AUDIT
+# =============================================================================
+# >>> PASTE THIS <<<
+# Look for:
+#   - Multiple MACs for same IP (ARP spoofing)
+#   - Unknown IPs in the table (rogue devices)
+#   - Missing expected entries
+
+show arp all
+show arp all | match 172.20.242
+
+# =============================================================================
+# SECTION 8: ACTIVE SESSION AUDIT
+# =============================================================================
+# >>> PASTE THIS <<<
+# Look for:
+#   - Sessions to/from unexpected IPs
+#   - High session counts from single source (potential attack)
+#   - Sessions using unexpected protocols/ports
+#   - Outbound sessions from servers that shouldn't initiate connections
+
+show session all
+show session all filter state active
+show session all filter destination 172.20.242.30
+show session all filter destination 172.20.242.40
+
+# Session count summary
+show session info
+
+# =============================================================================
+# SECTION 9: THREAT AND TRAFFIC LOGS
+# =============================================================================
+# >>> PASTE THIS <<<
+# Review recent logs for attacks, blocked traffic, and anomalies
+
+show log traffic
+show log threat
+show log system
+show log config
+
+# Recent threats
+show log threat direction backward csv-output no
+
+# Recent config changes (look for unauthorized changes!)
+show log config direction backward csv-output no
+
+# =============================================================================
+# SECTION 10: COUNTER AND STATISTICS AUDIT
+# =============================================================================
+# >>> PASTE THIS <<<
+# High drop counters may indicate attack or misconfiguration
+
+show counter global
+show counter global filter severity drop
+show counter global filter severity error
+
+# =============================================================================
+# SECTION 11: MANAGEMENT PLANE AUDIT
+# =============================================================================
+# >>> PASTE THIS <<<
+# Verify management hardening is intact
+
+show config running | match permitted-ip
+show config running | match disable-http
+show config running | match disable-telnet
+show config running | match disable-snmp
+show config running | match idle-timeout
+show config running | match admin-lockout
+show config running | match login-banner
+
+# =============================================================================
+# SECTION 12: ZONE CONFIGURATION AUDIT
+# =============================================================================
+# >>> PASTE THIS <<<
+
+show zone-protection zone all
+
+# =============================================================================
+# SECTION 13: FULL CONFIG DUMP (FOR BACKUP/DIFF)
+# =============================================================================
+# >>> PASTE THIS - SAVE OUTPUT FOR COMPARISON <<<
+# Take a baseline and diff against it periodically
+
+show config running
+
+# Compare against candidate config (should match after commit)
+show config diff
+
+# =============================================================================
+# QUICK REFERENCE: WHAT TO FLAG AS SUSPICIOUS
+# =============================================================================
+# >>> DO NOT PASTE - REFERENCE ONLY <<<
+#
+# 1. Unknown admin accounts (red team backdoor)
+# 2. Security rules you didn't create (especially allow-any)
+# 3. Modified scored service rules (broken services = points lost)
+# 4. Changed interface IPs (breaks routing)
+# 5. Extra static routes (potential traffic redirect)
+# 6. Management access from unexpected subnets
+# 7. High session counts from single IP (attack/pivot)
+# 8. Outbound sessions from servers to unusual destinations
+# 9. Config changes in log you didn't make
+# 10. Disabled logging on security rules (hiding activity)
+#
+# IF YOU FIND SOMETHING SUSPICIOUS:
+#   1. Screenshot/document the finding
+#   2. Report to team lead
+#   3. Enter configure mode to fix:
+#      configure
+#      delete mgt-config users <bad_user>
+#      delete rulebase security rules <bad_rule>
+#      commit
+#   4. If a scored service is broken, check:
+#      - Security policy (test security-policy-match ...)
+#      - NAT policy (show running nat-policy)
+#      - Routing (show routing route)
+#      - Interface status (show interface all)
+# =============================================================================
