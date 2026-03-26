@@ -172,6 +172,7 @@ ping 172.20.242.254 count 2
 ping 172.20.240.254 count 2
 
 # Ping scored services through FW1 (Linux zone)
+ping 172.20.242.20 count 2
 ping 172.20.242.30 count 2
 ping 172.20.242.40 count 2
 
