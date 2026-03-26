@@ -132,6 +132,9 @@ for port in 80 443; do
     iptables -A INPUT -p tcp --dport $port -j ACCEPT
 done
 
+# Splunk forwarder input
+iptables -A INPUT -p tcp --dport 9997 -j ACCEPT
+
 iptables-save > /etc/iptables/rules.v4
 
 # ================================
